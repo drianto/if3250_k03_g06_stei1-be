@@ -42,32 +42,15 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Swagger UI
+const SWAGGER_OPTIONS: swaggerUi.SwaggerUiOptions = {
+  customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+  customJs: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js'
+};
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, SWAGGER_OPTIONS));
 app.get('/api/docs.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
-});
-
-app.get('/api/docs', (_req, res) => {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>STEI Akreditasi API Documentation</title>
-        <meta charset="utf-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
-        <style>
-          body { margin: 0; padding: 0; }
-        </style>
-      </head>
-      <body>
-        <redoc spec-url='/api/docs.json'></redoc>
-        <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"> </script>
-      </body>
-    </html>
-  `;
-  res.setHeader('Content-Type', 'text/html');
-  res.status(200).send(html);
 });
 
 // Health check
