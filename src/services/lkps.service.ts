@@ -1,6 +1,6 @@
 import prisma from '../config/database.config';
 import { DocumentStatus } from '@prisma/client';
-import { LKPS_KRITERIA } from '@/config/lkps.config';
+import { LKPS_KRITERIA } from '../config/lkps.config';
 import { validateSheetData } from '../validators/lkps.validator';
 import { generateEarlyWarnings } from './notification.service';
 
@@ -177,7 +177,7 @@ export const createMultipleSheetsData = async (
     criteriaByCodes[c.criteriaCode] = c;
   });
 
-  const { getSheetConfig } = await import('@/config/lkps.config');
+  const { getSheetConfig } = await import('../config/lkps.config');
   const createdSheets: any[] = [];
 
   for (const [sheetName, sheetData] of Object.entries(parsedData)) {

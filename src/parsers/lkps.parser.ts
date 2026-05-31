@@ -1,6 +1,6 @@
 const ExcelJS = require('exceljs');
 import { Buffer } from 'buffer';
-import { getSheetConfig } from '@/config/lkps.config';
+import { getSheetConfig } from '../config/lkps.config';
 
 export interface LKPSParsedData {
   [sheetName: string]: any[];
