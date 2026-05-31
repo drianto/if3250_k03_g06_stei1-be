@@ -88,10 +88,15 @@ export const deleteEvidenHandler = async (req: Request, res: Response) => {
 
 export const downloadFileHandler = async (req: Request, res: Response) => {
     try {
-        const { file, filePath } = await evidenService.getEvidenFile(String(req.params.fileId));
-        res.download(filePath, file.originalFilename, (err) => {
-            if (err) res.status(404).send('File fisik tidak ditemukan di server.');
-        });
+        const { file } = await evidenService.getEvidenFile(String(req.params.fileId));
+        
+        const { storageProvider } = await import('../utils/storage');
+        const buffer = await storageProvider.downloadFile(file.savedFilename, 'eviden');
+        
+        const encodedName = encodeURIComponent(file.originalFilename);
+        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedName}`);
+        res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+        res.send(buffer);
     } catch (err: any) {
         errorResponse(res, err.message, 404);
     }

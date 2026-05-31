@@ -326,22 +326,20 @@ export const getCertificateFileHandler = async (req: Request, res: Response): Pr
   try {
     const accreditation = await prodiService.getAccreditation(prodiId);
     if (!accreditation?.certificateUrl) {
-      errorResponse(res, 'Sertifikat tidak tersedia untuk prodi ini', 404);
-      return;
-    }
-
-    if (accreditation.certificateUrl.startsWith('http')) {
-      res.redirect(accreditation.certificateUrl);
+      errorResponse(res, 'Sertifikat tidak tersedia', 404);
       return;
     }
 
     const { storageProvider } = await import('../utils/storage');
-    const filePath = storageProvider.getFilePath(accreditation.certificateUrl, 'accreditation');
+    const buffer = await storageProvider.downloadFile(accreditation.certificateUrl, 'accreditation');
+    
     const originalName = accreditation.certificateOriginalName ?? 'sertifikat';
-    res.download(filePath, originalName);
+    const encodedName = encodeURIComponent(originalName);
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedName}`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.send(buffer);
   } catch (err: any) {
-    const message = err.message;
-    const code = message.includes('tidak ditemukan') ? 404 : 500;
-    errorResponse(res, message, code);
+    const code = err.message.includes('tidak ditemukan') ? 404 : 500;
+    errorResponse(res, err.message, code);
   }
 };

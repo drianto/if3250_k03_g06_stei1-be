@@ -34,4 +34,10 @@ export class LocalStorageProvider implements IStorageProvider {
         }
         return false;
     }
+
+    async downloadFile(fileName: string, folder: string): Promise<Buffer> {
+        const filePath = path.join(this.basePath, folder, fileName);
+        if (!fs.existsSync(filePath)) throw new Error('File fisik tidak ditemukan di server.');
+        return fs.promises.readFile(filePath);
+    }
 }

@@ -19,4 +19,11 @@ export interface IStorageProvider {
      * @param folder 
      */
     delete(fileName: string, folder: string): Promise<boolean>;
+
+    /**
+     * Download File langsung
+     * @param fileName 
+     * @param folder 
+     */
+    downloadFile(fileName: string, folder: string): Promise<Buffer>;
 }

@@ -41,11 +41,15 @@ export const getTemplatesHandler = async (req: Request, res: Response) => {
 export const downloadTemplateHandler = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
-        const { template, filePath } = await templateService.getTemplateById(id);
+        const { template } = await templateService.getTemplateById(id);
         
-        res.download(filePath, template.name, (err) => {
-            if (err) res.status(404).send('File fisik tidak ditemukan di server.');
-        });
+        const { storageProvider } = await import('../utils/storage');
+        const buffer = await storageProvider.downloadFile(template.content, 'templates');
+        
+        const encodedName = encodeURIComponent(template.name);
+        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedName}`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.send(buffer);
     } catch (err: any) {
         const code = err.message.includes('tidak ditemukan') ? 404 : 500;
         errorResponse(res, err.message, code);

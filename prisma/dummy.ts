@@ -13,7 +13,7 @@ type ProdiSeed = {
     grade: string;
     startDate: Date;
     endDate: Date;
-    certificateUrl: string;
+    certificateUrl: string | null;
   };
 };
 
@@ -45,7 +45,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Unggul',
       startDate: new Date('2024-01-01'),
       endDate: new Date('2029-12-31'),
-      certificateUrl: 'https://example.com/certificates/if.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -58,7 +58,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Unggul',
       startDate: new Date('2024-01-01'),
       endDate: new Date('2029-12-31'),
-      certificateUrl: 'https://example.com/certificates/sti.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -71,7 +71,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'A',
       startDate: new Date('2023-07-01'),
       endDate: new Date('2028-06-30'),
-      certificateUrl: 'https://example.com/certificates/el.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -84,7 +84,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'A',
       startDate: new Date('2023-07-01'),
       endDate: new Date('2026-04-15'),
-      certificateUrl: 'https://example.com/certificates/ep.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -97,7 +97,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Unggul',
       startDate: new Date('2024-01-01'),
       endDate: new Date('2029-12-31'),
-      certificateUrl: 'https://example.com/certificates/et.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -110,7 +110,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Baik Sekali',
       startDate: new Date('2022-01-01'),
       endDate: new Date('2026-07-15'),
-      certificateUrl: 'https://example.com/certificates/eb.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -123,7 +123,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Unggul',
       startDate: new Date('2025-01-01'),
       endDate: new Date('2030-12-31'),
-      certificateUrl: 'https://example.com/certificates/mte.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -136,7 +136,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Unggul',
       startDate: new Date('2025-01-01'),
       endDate: new Date('2030-12-31'),
-      certificateUrl: 'https://example.com/certificates/mi.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -149,7 +149,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Unggul',
       startDate: new Date('2025-01-01'),
       endDate: new Date('2030-12-31'),
-      certificateUrl: 'https://example.com/certificates/msti.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -162,7 +162,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Unggul',
       startDate: new Date('2025-01-01'),
       endDate: new Date('2030-12-31'),
-      certificateUrl: 'https://example.com/certificates/mka.pdf',
+      certificateUrl: null,
     },
   },
   {
@@ -175,7 +175,7 @@ const prodiSeeds: ProdiSeed[] = [
       grade: 'Unggul',
       startDate: new Date('2025-01-01'),
       endDate: new Date('2031-12-31'),
-      certificateUrl: 'https://example.com/certificates/dtei.pdf',
+      certificateUrl: null,
     },
   },
 ];
@@ -551,63 +551,6 @@ async function seedUsers(prodiIdByKey: Record<string, string>) {
   return usersByKey;
 }
 
-async function seedTemplates(uploaderId: string) {
-  const templates = [
-    {
-      id: 'template-led-infokom',
-      name: 'Template LED LAM Infokom',
-      type: 'LED' as const,
-      category: 'INFOKOM' as const,
-      content: 'templates/led-infokom.docx',
-    },
-    {
-      id: 'template-led-teknik',
-      name: 'Template LED LAM Teknik',
-      type: 'LED' as const,
-      category: 'TEKNIK' as const,
-      content: 'templates/led-teknik.docx',
-    },
-    {
-      id: 'template-lkps-infokom',
-      name: 'Template LKPS LAM Infokom',
-      type: 'LKPS' as const,
-      category: 'INFOKOM' as const,
-      content: 'templates/lkps-infokom.xlsx',
-    },
-    {
-      id: 'template-lkps-teknik',
-      name: 'Template LKPS LAM Teknik',
-      type: 'LKPS' as const,
-      category: 'TEKNIK' as const,
-      content: 'templates/lkps-teknik.xlsx',
-    },
-  ];
-
-  for (const template of templates) {
-    await prisma.documentTemplate.upsert({
-      where: {
-        type_category: {
-          type: template.type,
-          category: template.category,
-        },
-      },
-      update: {
-        name: template.name,
-        content: template.content,
-        uploadedById: uploaderId,
-      },
-      create: {
-        id: template.id,
-        name: template.name,
-        type: template.type,
-        category: template.category,
-        content: template.content,
-        uploadedById: uploaderId,
-      },
-    });
-  }
-}
-
 async function seedThresholds() {
   const thresholds = [
     { name: 'MIN_FINAL_SCORE', value: 75 },
@@ -773,38 +716,6 @@ async function seedLedAndLkpsDocuments(prodiIdByKey: Record<string, string>, use
 
     const ledTemplate = prodi.category === 'INFOKOM' ? 'INFOKOM' : 'LAM_TEKNIK';
 
-    await prisma.documentLED.upsert({
-      where: {
-        prodiId_periode_versi: {
-          prodiId,
-          periode: '2025',
-          versi: 1,
-        },
-      },
-      update: {
-        name: `LED ${prodi.abbreviation} 2025`,
-        status: 'FINAL',
-        content: `Konten LED dummy untuk ${prodi.fullname}`,
-        lockedAt: new Date('2026-05-21T00:00:00.000Z'),
-        lockedBy: kaprodi.id,
-        ukuran: 1024 * (50 + index * 5),
-        pengunggahId: kaprodi.id,
-      },
-      create: {
-        id: `led-doc-${prodi.key}`,
-        prodiId,
-        name: `LED ${prodi.abbreviation} 2025`,
-        status: 'FINAL',
-        content: `Konten LED dummy untuk ${prodi.fullname}`,
-        lockedAt: new Date('2026-05-21T00:00:00.000Z'),
-        lockedBy: kaprodi.id,
-        ukuran: 1024 * (50 + index * 5),
-        periode: '2025',
-        versi: 1,
-        pengunggahId: kaprodi.id,
-      },
-    });
-
     await prisma.ledForm.upsert({
       where: {
         prodiId_periode_template_versi: {
@@ -847,8 +758,6 @@ async function seedLedAndLkpsDocuments(prodiIdByKey: Record<string, string>, use
         name: `LKPS ${prodi.abbreviation} 2025`,
         status: 'FINAL',
         content: { prodi: prodi.fullname, level: prodi.degree },
-        filePath: `/uploads/lkps/LKPS_${prodi.abbreviation}_2025.xlsx`,
-        originalFilename: `LKPS_${prodi.abbreviation}_2025.xlsx`,
         lockedAt: new Date('2026-05-21T00:00:00.000Z'),
         lockedBy: kaprodi.id,
       },
@@ -858,8 +767,6 @@ async function seedLedAndLkpsDocuments(prodiIdByKey: Record<string, string>, use
         name: `LKPS ${prodi.abbreviation} 2025`,
         status: 'FINAL',
         content: { prodi: prodi.fullname, level: prodi.degree },
-        filePath: `/uploads/lkps/LKPS_${prodi.abbreviation}_2025.xlsx`,
-        originalFilename: `LKPS_${prodi.abbreviation}_2025.xlsx`,
         lockedAt: new Date('2026-05-21T00:00:00.000Z'),
         lockedBy: kaprodi.id,
         periode: '2025',
@@ -919,61 +826,6 @@ async function seedLedAndLkpsDocuments(prodiIdByKey: Record<string, string>, use
         },
       });
     }
-  }
-}
-
-async function seedEviden(prodiIdByKey: Record<string, string>, usersByKey: Map<string, { id: string }>) {
-  for (const [index, prodi] of prodiSeeds.entries()) {
-    const prodiId = prodiIdByKey[prodi.key];
-    const kaprodi = usersByKey.get(`user-dummy-kaprodi-${prodi.key}`);
-
-    if (!prodiId || !kaprodi) continue;
-
-    await prisma.dokumenEviden.upsert({
-      where: { id: `eviden-${prodi.key}` },
-      update: {
-        prodiId,
-        judul: `Dokumentasi Kegiatan ${prodi.fullname}`,
-        deskripsi: `<p>Bukti kegiatan dummy untuk ${prodi.fullname}.</p>`,
-        indikator: ['C3', 'C6'],
-        periode: '2025',
-        status: index % 2 === 0 ? 'FINAL' : 'DRAFT',
-        lockedAt: index % 2 === 0 ? new Date('2026-05-21T00:00:00.000Z') : null,
-        lockedBy: index % 2 === 0 ? kaprodi.id : null,
-        uploaderId: kaprodi.id,
-      },
-      create: {
-        id: `eviden-${prodi.key}`,
-        prodiId,
-        judul: `Dokumentasi Kegiatan ${prodi.fullname}`,
-        deskripsi: `<p>Bukti kegiatan dummy untuk ${prodi.fullname}.</p>`,
-        indikator: ['C3', 'C6'],
-        periode: '2025',
-        status: index % 2 === 0 ? 'FINAL' : 'DRAFT',
-        lockedAt: index % 2 === 0 ? new Date('2026-05-21T00:00:00.000Z') : null,
-        lockedBy: index % 2 === 0 ? kaprodi.id : null,
-        uploaderId: kaprodi.id,
-      },
-    });
-
-    await prisma.evidenFile.upsert({
-      where: { id: `eviden-file-${prodi.key}` },
-      update: {
-        evidenId: `eviden-${prodi.key}`,
-        originalFilename: `${prodi.abbreviation}_Dokumentasi.pdf`,
-        savedFilename: `${prodi.key}-dokumentasi.pdf`,
-        mimeType: 'application/pdf',
-        size: 1024 * 1024 * (10 + index),
-      },
-      create: {
-        id: `eviden-file-${prodi.key}`,
-        evidenId: `eviden-${prodi.key}`,
-        originalFilename: `${prodi.abbreviation}_Dokumentasi.pdf`,
-        savedFilename: `${prodi.key}-dokumentasi.pdf`,
-        mimeType: 'application/pdf',
-        size: 1024 * 1024 * (10 + index),
-      },
-    });
   }
 }
 
@@ -1094,215 +946,45 @@ async function main() {
     }
   }
 
-  await seedTemplates('user-dummy-super-admin');
   await seedThresholds();
   await seedDataInstitusi(usersByKey);
-  // seedNotifications is disabled to prevent leaked development messages in the inbox
-  // await seedNotifications(prodiIdByKey);
   await seedSimulations(prodiIdByKey);
   await seedLedAndLkpsDocuments(prodiIdByKey, usersByKey);
-  await seedEviden(prodiIdByKey, usersByKey);
 
   console.log('Dummy seed completed.');
   console.log('Default password for all dummy users: password123');
 
   // ==========================================
-  // SEEDING DUMMY: DOKUMEN LED (UPLOAD)
+  // SEEDING DUMMY: LED FORM
   // ==========================================
-  console.log('Seeding Document LED dummy data...');
-  
+  console.log('Seeding LED Form dummy data...');
   const kaprodiIf = await prisma.user.findUnique({ where: { email: 'kaprodi.if@email.com' } });
   const prodiIfId = prodiIdByKey['if'];
-
-  if (kaprodiIf && prodiIfId) {
-    const dummyLEDs = [
-      {
-        name: 'dummy1.docx',
-        status: 'DRAFT' as any,
-        content: 'dummy1.docx',
-        ukuran: 1024 * 33,
-        periode: '2025',
-        versi: 1,
-        pengunggahId: kaprodiIf.id,
-        prodiId: prodiIfId,
-      },
-      {
-        name: 'dummy2.docx',
-        status: 'DRAFT' as any,
-        content: 'dummy2.docx',
-        ukuran: 1024 * 751,
-        periode: '2025',
-        versi: 2,
-        pengunggahId: kaprodiIf.id,
-        prodiId: prodiIfId,
-      },
-      {
-        name: 'dummy3.docx',
-        status: 'FINAL' as any,
-        content: 'dummy3.docx',
-        ukuran: 1024 * 19,
-        periode: '2025',
-        versi: 3,
-        pengunggahId: kaprodiIf.id,
-        prodiId: prodiIfId,
-        lockedAt: new Date(),
-        lockedBy: kaprodiIf.id,
-      },
-      {
-        name: 'dummy4.docx',
-        status: 'FINAL' as any,
-        content: 'dummy4.docx',
-        ukuran: 1024 * 892,
-        periode: '2020',
-        versi: 1,
-        pengunggahId: kaprodiIf.id,
-        prodiId: prodiIfId,
-        lockedAt: new Date(),
-        lockedBy: kaprodiIf.id,
-      }
-    ];
-
-    for (const led of dummyLEDs) {
-      await prisma.documentLED.upsert({
-        where: {
-          prodiId_periode_versi: {
-            prodiId: led.prodiId,
-            periode: led.periode,
-            versi: led.versi
-          }
-        },
-        update: led,
-        create: led,
-      });
-    }
-
-    // ==========================================
-    // SEEDING DUMMY: LED FORM
-    // ==========================================
-    console.log('Seeding LED Form dummy data...');
-    await prisma.ledForm.upsert({
-      where: {
-        prodiId_periode_template_versi: {
-            prodiId: prodiIfId,
-            periode: '2025',
-            template: 'INFOKOM',
-            versi: 1
-        }
-      },
-      update: {},
-      create: {
-          prodiId: prodiIfId,
-          template: 'INFOKOM',
-          periode: '2025',
-          versi: 1,
-          status: 'FINAL',
-          content: { "bab1": "Isi pendahuluan dari form LED" },
-          createdById: kaprodiIf.id,
-          lockedAt: new Date(),
-          lockedBy: kaprodiIf.id,
-      }
-    });
-  }
-
-  // ==========================================
-  // SEEDING DUMMY: DOKUMEN EVIDEN
-  // ==========================================
-  console.log('Seeding Dokumen Eviden dummy data...');
-  if (kaprodiIf && prodiIfId) {
-    await prisma.dokumenEviden.upsert({
-      where: { id: 'eviden-dummy-1' },
-      update: {},
-      create: {
-        id: 'eviden-dummy-1',
-        prodiId: prodiIfId,
-        judul: 'Dokumentasi Kegiatan Hackathon 2025',
-        deskripsi: '<p>Ini adalah bukti dokumentasi kegiatan perlombaan mahasiswa.</p>',
-        indikator: ['C3', 'C6'],
-        periode: '2025',
-        status: 'FINAL', // Tes dokumen yang dikunci
-        lockedAt: new Date(),
-        lockedBy: kaprodiIf.id,
-        uploaderId: kaprodiIf.id,
-        files: {
-          create: [
-            {
-              id: 'file-dummy-1',
-              originalFilename: 'Video_Dokumentasi.mp4',
-              savedFilename: 'dummy-1.mp4',
-              mimeType: 'video/mp4',
-              size: 1024 * 1024 * 45, // 45 MB
-            }
-          ]
-        }
-      }
-    });
-
-    await prisma.dokumenEviden.upsert({
-      where: { id: 'eviden-dummy-2' },
-      update: {},
-      create: {
-        id: 'eviden-dummy-2',
-        prodiId: prodiIfId,
-        judul: 'Daftar Hadir Dosen 2024',
-        deskripsi: '<p>Rekap kehadiran dan RPS.</p>',
-        indikator: ['C4', 'C5'],
-        periode: '2024',
-        status: 'DRAFT', // Tes dokumen yang masih terbuka
-        uploaderId: kaprodiIf.id,
-        files: {
-          create: [
-            {
-              id: 'file-dummy-2',
-              originalFilename: 'Rekap_Hadir_2024.xlsx',
-              savedFilename: 'dummy-2.xlsx',
-              mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              size: 1024 * 850, // 850 KB
-            }
-          ]
-        }
-      }
-    });
-  }
-
-  // ==========================================
-  // SEEDING DUMMY: DOKUMEN TEMPLATE
-  // ==========================================
-  console.log('Seeding Document Template dummy data...');
-
   const superAdmin = await prisma.user.findUnique({ where: { email: 'dummyadmin@email.com' } });
 
-  if (superAdmin) {
-    const dummyTemplates = [
-      {
-        id: 'template-dummy-infokom-led',
-        name: 'Template LED LAM Infokom',
-        type: 'LED' as any,
-        category: 'INFOKOM' as any,
-        content: 'dummy.docx',
-        uploadedById: superAdmin.id,
-      },
-      {
-        id: 'template-dummy-teknik-lkps',
-        name: 'Template LKPS LAM Teknik',
-        type: 'LKPS' as any,
-        category: 'TEKNIK' as any,
-        content: 'dummy.xlsx',
-        uploadedById: superAdmin.id,
-      }
-    ];
-
-    for (const template of dummyTemplates) {
-      await prisma.documentTemplate.upsert({
+  if (kaprodiIf && prodiIfId) {
+      await prisma.ledForm.upsert({
         where: {
-          type_category: {
-            type: template.type,
-            category: template.category,
-          },
+          prodiId_periode_template_versi: {
+              prodiId: prodiIfId,
+              periode: '2025',
+              template: 'INFOKOM',
+              versi: 1
+          }
         },
-        update: template,
-        create: template,
+        update: {},
+        create: {
+            prodiId: prodiIfId,
+            template: 'INFOKOM',
+            periode: '2025',
+            versi: 1,
+            status: 'FINAL',
+            content: { "bab1": "Isi pendahuluan dari form LED" },
+            createdById: kaprodiIf.id,
+            lockedAt: new Date(),
+            lockedBy: kaprodiIf.id,
+        }
       });
-    }
   }
 
   // ==========================================
@@ -1327,8 +1009,6 @@ async function main() {
           versi: 1,
           periode: '2025',
           content: { menu: 'Laporan Kinerja Program Studi' },
-          originalFilename: 'LKPS_IF_2025.xlsx',
-          filePath: '/uploads/lkps/LKPS_IF_2025.xlsx',
         },
       });
 

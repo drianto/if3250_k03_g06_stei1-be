@@ -14,7 +14,6 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      # Note: using $$ to escape $ for shell command in docker-compose
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-stei_akreditasi}"]
       interval: 10s
       timeout: 5s
@@ -46,6 +45,11 @@ services:
       SSO_CLIENT_ID: ${SSO_CLIENT_ID:-PLACEHOLDER}
       SSO_CLIENT_SECRET: ${SSO_CLIENT_SECRET:-PLACEHOLDER}
       SSO_CALLBACK_URL: ${SSO_CALLBACK_URL:-http://localhost:8000/api/auth/callback}
+      
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-supabase}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_BUCKET_NAME: ${SUPABASE_BUCKET_NAME:-dokumen-akreditasi}
 
 volumes:
   pgdata:
