@@ -3,6 +3,12 @@ import path from 'path';
 import dotenv from 'dotenv';
 dotenv.config();
 
+const getBaseUrl = () => {
+  if (process.env.API_URL) return process.env.API_URL;
+  if (process.env.NODE_ENV === 'production') return 'https://if3250-k03-g06-stei1-be.vercel.app';
+  return `http://localhost:${process.env.PORT || 8000}`;
+};
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -14,8 +20,8 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: process.env.API_URL || `http://localhost:${process.env.PORT || 8000}` || 'https://if3250-k03-g06-stei1-be.vercel.app',
-        description: 'Development server',
+        url: getBaseUrl(),
+        description: process.env.NODE_ENV === 'production' ? 'Production server (Vercel)' : 'Development server',
       },
     ],
     components: {
