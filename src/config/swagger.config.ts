@@ -14,7 +14,7 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: process.env.API_URL || `http://localhost:${process.env.PORT || 8000}`,
+        url: process.env.API_URL || `http://localhost:${process.env.PORT || 8000}` || 'https://if3250-k03-g06-stei1-be.vercel.app',
         description: 'Development server',
       },
     ],
