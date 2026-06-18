@@ -1,6 +1,6 @@
 const ExcelJS = require('exceljs');
 import { Buffer } from 'buffer';
-import { getSheetConfig } from '../config/lkps.config';
+import { getSheetConfig, getSheetNamesByFormat, LKPSFormat } from '../config/lkps.config';
 
 export interface LKPSParsedData {
   [sheetName: string]: any[];
@@ -47,17 +47,18 @@ const extractCellValue = (cell: any): any => {
   
   return value !== undefined && value !== null ? value : '';
 };
+
 /**
  * Helper: Find data start row (first row with value "1" in column A or B)
  */
 const findDataStartRow = (worksheet: any, maxRows = 30): number => {
   for (let r = 1; r <= maxRows; r++) {
     const row = worksheet.getRow(r);
-    const valA = extractCellValue(row.getCell(1));
-    const valB = extractCellValue(row.getCell(2));
+    const valA = String(extractCellValue(row.getCell(1))).trim();
+    const valB = String(extractCellValue(row.getCell(2))).trim();
     
-    if (valA === 1 || valB === 1) {
-      return r;
+    if (valA === '1' || valB === '1') {
+      return r - 1; // Return the row BEFORE the first data row (acting as header row)
     }
   }
   return 10; // Default fallback
@@ -67,28 +68,27 @@ const findDataStartRow = (worksheet: any, maxRows = 30): number => {
  * Helper: Find start column (A=1 or B=2 where first row data starts)
  */
 const findDataStartCol = (worksheet: any, headerRow: number): number => {
-  const row = worksheet.getRow(headerRow);
-  const valA = extractCellValue(row.getCell(1));
-  const valB = extractCellValue(row.getCell(2));
+  const dataRow = headerRow + 1;
+  const row = worksheet.getRow(dataRow);
+  const valA = String(extractCellValue(row.getCell(1))).trim();
+  const valB = String(extractCellValue(row.getCell(2))).trim();
   
-  return (valA === 1) ? 1 : 2;
+  return (valA === '1') ? 1 : (valB === '1') ? 2 : 1;
 };
 
 /**
  * Main parser: Convert Excel array data to array of objects
+ * @param buffer - Excel file buffer
+ * @param format - 'INFOKOM' | 'TEKNIK' (defaults to INFOKOM)
  */
-export const parseLKPSExcel = async (buffer: Buffer): Promise<LKPSParsedData> => {
+export const parseLKPSExcel = async (buffer: Buffer, format: LKPSFormat = 'INFOKOM'): Promise<LKPSParsedData> => {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as any);
   
   const result: LKPSParsedData = {};
   
-  const SHEETS = [
-    'PS', 'PSPPI', '1', '2a1', '2a2', '2a3', '2b', '3a1', '3a2', '3a3', '3a4', '3a5', '3b', '3c', 
-    '4a', '4b', '4c', '4d', '4e', '4f-1', '4f-2', '4f-3', '4f-4', '4g', '4h', '4i', '4j', '4k', 
-    '5a', '5b', '5c', '6a', '6b', '6c1', '6c2', '6d', '6e1', '6e2', '6e3-1', '6e3-2', '6e3-3', 
-    '6e3-4', '6e4', '6f1', '6f2', '6g1', '6g2', '6h1', '6h2', '6i', '7a', '7b'
-  ];
+  // Use format-specific sheet list
+  const SHEETS = getSheetNamesByFormat(format);
 
   for (const sheetName of SHEETS) {
     const worksheet = workbook.getWorksheet(sheetName);
@@ -98,7 +98,7 @@ export const parseLKPSExcel = async (buffer: Buffer): Promise<LKPSParsedData> =>
     }
 
     // Get sheet config to know column structure
-    const sheetConfig = getSheetConfig(sheetName);
+    const sheetConfig = getSheetConfig(sheetName, format);
     if (!sheetConfig) {
       result[sheetName] = [];
       continue;

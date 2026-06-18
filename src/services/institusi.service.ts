@@ -31,39 +31,60 @@ export const upsertAndSyncInstitusi = async (
         },
       });
 
-  const targetSheets = await prisma.lKPSSheetData.findMany({
+  const SHEET_MAP: Record<string, Record<string, string | null>> = {
+    '2b': { INFOKOM: '2b', TEKNIK: '4a' },
+    '4b': { INFOKOM: '4b', TEKNIK: null }, 
+    '6a': { INFOKOM: '6a', TEKNIK: '2b' }
+  };
+
+  const documents = await prisma.documentLKPS.findMany({
     where: {
-      sheetName: sheetName,
-      criteria: {
-        document: {
-          periode: periode,
-          ...(prodiId ? { prodiId } : {}),
-        },
-      },
+      periode,
+      ...(prodiId ? { prodiId } : {}),
     },
+    include: {
+      prodi: true,
+      criterias: {
+        include: {
+          sheets: true
+        }
+      }
+    }
   });
 
-  for (const sheet of targetSheets) {
-    let currentData: any[] = (sheet.data as any[]) || [];
+  for (const doc of documents) {
+    const category = doc.prodi.category || 'TEKNIK';
+    const mapping = SHEET_MAP[sheetName];
+    const targetSheetName = mapping ? mapping[category] : sheetName;
 
-    const mergedData = currentData.map((row) => {
-      const uppsRow = uppsDataPayload.find((u) => u.no === row.no);
-      
-      if (uppsRow) {
-        return {
-          ...row, 
-          ...uppsRow,
-        };
+    if (!targetSheetName) continue; 
+
+    for (const criteria of doc.criterias) {
+      const sheet = criteria.sheets.find(s => s.sheetName === targetSheetName);
+      if (sheet) {
+        let currentData: any[] = (sheet.data as any[]) || [];
+
+        const mergedData = currentData.map((row) => {
+          const uppsRow = uppsDataPayload.find((u) => u.no === row.no);
+          if (uppsRow) {
+            return { ...row, ...uppsRow };
+          }
+          return row;
+        });
+
+        // Temukan baris baru dari UPPS yang belum ada di LKPS
+        const newRows = uppsDataPayload.filter(
+          (u) => !currentData.some((row) => row.no === u.no)
+        );
+
+        const finalDataToSave = currentData.length > 0 ? [...mergedData, ...newRows] : uppsDataPayload;
+
+        await prisma.lKPSSheetData.update({
+          where: { id: sheet.id },
+          data: { data: finalDataToSave },
+        });
       }
-      return row;
-    });
-
-    const finalDataToSave = currentData.length > 0 ? mergedData : uppsDataPayload;
-
-    await prisma.lKPSSheetData.update({
-      where: { id: sheet.id },
-      data: { data: finalDataToSave },
-    });
+    }
   }
 
   generateEarlyWarnings(prodiId || undefined).catch(err => console.error('Failed to trigger early warnings after institusi sync:', err));

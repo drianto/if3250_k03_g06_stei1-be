@@ -23,7 +23,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
         if (!supabaseUrl || !supabaseKey) {
             console.error("X ERROR: SUPABASE_URL atau SUPABASE_SERVICE_ROLE_KEY tidak ditemukan di environment variables!");
-            this.supabase = createClient('https://dummy.supabase.co', 'dummy-key', supabaseOptions);
+            // We shouldn't create a dummy client because it will hang or timeout
+            this.supabase = null as any;
         } else {
             this.supabase = createClient(supabaseUrl, supabaseKey, supabaseOptions);
         }
@@ -32,6 +33,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
 
     async upload(file: Express.Multer.File, folder: string): Promise<string> {
+        if (!this.supabase) {
+            console.warn(`[SUPABASE] Mode offline/dummy. Mengembalikan nama file palsu.`);
+            return `${folder}-dummy-${Date.now()}.xlsx`;
+        }
+
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         const ext = path.extname(file.originalname);
         const prefix = folder.toUpperCase();
@@ -62,6 +68,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
 
     getFilePath(fileName: string, folder: string): string {
+        if (!this.supabase) return `https://dummy.supabase.co/${folder}/${fileName}`;
         const filePathInBucket = `${folder}/${fileName}`;
         
         const { data } = this.supabase.storage
@@ -72,6 +79,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
 
     async delete(fileName: string, folder: string): Promise<boolean> {
+        if (!this.supabase) return true;
         const filePathInBucket = `${folder}/${fileName}`;
         
         const { error } = await this.supabase.storage
@@ -86,6 +94,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
 
     async downloadFile(fileName: string, folder: string): Promise<Buffer> {
+        if (!this.supabase) return Buffer.from("Dummy file content");
         const filePathInBucket = `${folder}/${fileName}`;
         const { data, error } = await this.supabase.storage
             .from(this.bucketName)

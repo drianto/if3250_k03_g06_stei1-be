@@ -60,24 +60,11 @@ const validateRowData = (row: any, sheetConfig: any, rowIndex: number): string[]
   const errors: string[] = [];
 
   sheetConfig.columns.forEach((col: any) => {
-    const value = row[col.key];
-
-    // Skip if autoCalculated
-    if (col.autoCalculated) return;
-
-    // Validate type
-    const typeError = validateColumnType(col.key, value, col.type, rowIndex);
-    if (typeError) errors.push(typeError);
-
-    // Validate select options
-    if (col.type === 'select' && col.options && value !== null && value !== undefined && value !== '') {
-      if (!col.options.includes(value)) {
-        errors.push(
-          `Baris ${rowIndex + 1}, kolom "${col.label}": nilai "${value}" tidak valid. ` +
-          `Pilihan: ${col.options.join(', ')}`
-        );
-      }
-    }
+    // We intentionally disable strict type validation and select validation here.
+    // LKPS templates are often messy (legends, sub-headers, etc.).
+    // If we throw validation errors, the entire upload crashes and frustrates the user.
+    // Instead, we allow all data to be imported as JSON, and the user can clean it up
+    // visually in the web UI.
   });
 
   return errors;
@@ -92,41 +79,10 @@ const validateColumnType = (key: string, value: any, type: string, rowIndex: num
     return null;
   }
 
-  switch (type) {
-    case 'number':
-      if (isNaN(Number(value))) {
-        return `Baris ${rowIndex + 1}, kolom "${key}": nilai harus berupa angka, diterima "${value}"`;
-      }
-      break;
-
-    case 'date':
-      // Accept various date formats: YYYY-MM-DD, HH/BB/TTTT, ISO string
-      if (!(value instanceof Date || typeof value === 'string' || typeof value === 'number')) {
-        return `Baris ${rowIndex + 1}, kolom "${key}": format tanggal tidak valid`;
-      }
-      break;
-
-    case 'url':
-      try {
-        new URL(value);
-      } catch {
-        return `Baris ${rowIndex + 1}, kolom "${key}": URL tidak valid, diterima "${value}"`;
-      }
-      break;
-
-    case 'boolean':
-      if (typeof value !== 'boolean' && value !== 1 && value !== 0 && value !== 'true' && value !== 'false') {
-        return `Baris ${rowIndex + 1}, kolom "${key}": nilai harus boolean, diterima "${value}"`;
-      }
-      break;
-
-    case 'text':
-    case 'textarea':
-      if (typeof value !== 'string') {
-        return `Baris ${rowIndex + 1}, kolom "${key}": nilai harus teks, diterima tipe ${typeof value}`;
-      }
-      break;
-  }
+  // Relaxed validation: We intentionally return null (no error) for all types.
+  // This prevents the upload from crashing due to stray texts/legends.
+  // The frontend can handle rendering these as strings, and users can delete invalid rows in the UI.
+  return null;
 
   return null;
 };

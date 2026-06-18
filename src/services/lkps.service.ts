@@ -1,6 +1,6 @@
 import prisma from '../config/database.config';
 import { DocumentStatus } from '@prisma/client';
-import { LKPS_KRITERIA } from '../config/lkps.config';
+import { LKPS_KRITERIA, getSheetConfig, LKPSFormat } from '../config/lkps.config';
 import { validateSheetData } from '../validators/lkps.validator';
 import { generateEarlyWarnings } from './notification.service';
 
@@ -165,7 +165,8 @@ export const createLKPSSheetData = async (
 export const createMultipleSheetsData = async (
   documentId: string,
   parsedData: Record<string, any[]>,
-  tx?: any
+  tx?: any,
+  format?: LKPSFormat
 ) => {
   const client = tx || prisma;
   const criterias = await client.lKPSCriteria.findMany({
@@ -177,11 +178,11 @@ export const createMultipleSheetsData = async (
     criteriaByCodes[c.criteriaCode] = c;
   });
 
-  const { getSheetConfig } = await import('../config/lkps.config');
+  const { getSheetConfig } = await import('@/config/lkps.config');
   const createdSheets: any[] = [];
 
   for (const [sheetName, sheetData] of Object.entries(parsedData)) {
-    const sheetConfig = getSheetConfig(sheetName);
+    const sheetConfig = getSheetConfig(sheetName, format);
     if (!sheetConfig) {
       console.warn(`Sheet config not found for ${sheetName}`);
       continue;
@@ -198,22 +199,33 @@ export const createMultipleSheetsData = async (
     let cleanedData: any[] = sheetData.filter((row) => {
       if (!row) return false;
 
+      const nonEmptyVals = Object.values(row).filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+      if (nonEmptyVals.length === 0) return false;
+      
+      // If a row only has 1 column filled, it's almost certainly a footer/legend, not a valid data row
+      if (nonEmptyVals.length === 1 && sheetConfig.rowType === 'free') {
+        return false;
+      }
+
       const hasHeaderArtifacts = Object.values(row).some(val => {
         if (typeof val === 'string') {
           const text = val.toLowerCase().replace(/\s+/g, '');
+          if (!text) return false;
 
-          return text === 'jumlah' || 
-                 text === 'total' || 
-                 text === 'ratarata' || 
-                 text === 'rata-rata' ||
-                 text === '(a)' || 
-                 text === '(b)' || 
-                 text === '(c)' ||
-                 text.includes('jumlahmahasiswa') ||
-                 text.includes('dalamsemester') ||
-                 text.includes('≤ms≤') ||
-                 text.includes('<ms≤') ||
-                 text.includes('ms>');
+          const isLegendPrefix = 
+            text === 'jumlah' || text === 'total' || text === 'ratarata' || text === 'rata-rata' ||
+            text === '(a)' || text === '(b)' || text === '(c)' || text === 'info' || text === 'no.' || text === 'no' ||
+            text.startsWith('jp=') || text.startsWith('jb=') || text.startsWith('ni=') || text.startsWith('nw=') ||
+            text.startsWith('nd=') || text.startsWith('nk=') || text.startsWith('na=') || text.startsWith('nb=') ||
+            text.startsWith('nc=') || text.startsWith('keterangan') || text.startsWith('catatan') || text.startsWith('*') ||
+            text.includes('khususuntuk') || text.includes('judulpenelitian') || text.includes('jumlahmahasiswa') ||
+            text.includes('dalamsemester') || text.includes('≤ms≤') || text.includes('<ms≤') || text.includes('ms>');
+            
+          // If it matches a legend prefix AND the row has <= 3 non-empty columns, it's definitely a legend
+          if (isLegendPrefix && nonEmptyVals.length <= 3) return true;
+          
+          // Absolute matches that are always skipped
+          if (['jumlah', 'total', 'ratarata', 'rata-rata', 'no.', 'no'].includes(text)) return true;
         }
         return false;
       });
@@ -225,6 +237,14 @@ export const createMultipleSheetsData = async (
         if (/^(I{1,3}|IV|V|VI{0,3}|IX|X|[A-Z])$/.test(noVal)) {
           return false; 
         }
+      }
+
+      // Check for LKPS sub-header numbering row (e.g., 1, 2, 3, 4, 5...) or (1), (2), (3)...
+      const vals = Object.values(row)
+        .filter(v => v !== '' && v !== null && v !== undefined)
+        .map(v => String(v).replace(/[()]/g, '').trim());
+      if (vals.length >= 3 && vals[0] === '1' && vals[1] === '2' && vals[2] === '3') {
+        return false;
       }
 
       return Object.values(row).some((val) => {
@@ -481,7 +501,8 @@ export const importLKPS = async (
   name: string,
   filePath: string,
   originalFilename: string,
-  periode: string
+  periode: string,
+  format?: LKPSFormat
 ) => {
   return await prisma.$transaction(async (tx: any) => {
     // 1. Create Document
@@ -498,12 +519,30 @@ export const importLKPS = async (
     // 2. Create Criterias
     await createAllLKPSCriteria(document.id, tx);
 
-    // 3. Create Sheet Data
-    await createMultipleSheetsData(document.id, parsedData, tx);
+    // 3. Create Sheet Data (format-aware)
+    await createMultipleSheetsData(document.id, parsedData, tx, format);
 
     generateEarlyWarnings(prodiId).catch(err => console.error('Failed to trigger early warnings after LKPS import:', err));
     return document;
   }, {
     timeout: 30000 // 30 seconds for large imports
+  });
+};
+
+export const deleteLKPSDocument = async (documentId: string) => {
+  const doc = await prisma.documentLKPS.findUnique({
+    where: { id: documentId }
+  });
+
+  if (!doc) {
+    throw new Error('Dokumen tidak ditemukan');
+  }
+
+  if (doc.status === 'FINAL') {
+    throw new Error('Dokumen dengan status FINAL tidak dapat dihapus');
+  }
+
+  return await prisma.documentLKPS.delete({
+    where: { id: documentId }
   });
 };

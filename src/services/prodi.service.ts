@@ -4,6 +4,7 @@ import { UpdateProdiInput, UpsertAccreditationInput } from '../validators/prodi.
 import { storageProvider } from '../utils/storage';
 import { getSimulationByProdi } from './simulasiskor.service';
 import { generateEarlyWarnings } from './notification.service';
+import { getSheetNamesByFormat } from '../config/lkps.config';
 
 export interface DashboardData {
   prodi: {
@@ -244,10 +245,23 @@ export const getDashboardByProdi = async (prodiId: string): Promise<DashboardDat
   const lkpsDoc = prodi.documentLKPS[0] as { status: string } | undefined;
   const ledDoc = prodi.documentLED[0] as { status: string } | undefined;
 
+  const isInfokom = prodi.category === 'INFOKOM';
+  const format = isInfokom ? 'INFOKOM' : 'TEKNIK';
+  let lkpsProgress = 0;
+  if (lkpsDoc?.status === 'FINAL') {
+    lkpsProgress = 100;
+  } else if (lkpsDoc && (lkpsDoc as any).content) {
+    const totalSheets = getSheetNamesByFormat(format).length;
+    const content = typeof (lkpsDoc as any).content === 'string' ? JSON.parse((lkpsDoc as any).content) : (lkpsDoc as any).content;
+    const filledSheets = Object.values(content).filter((sheetData: any) => Array.isArray(sheetData) && sheetData.length > 0).length;
+    lkpsProgress = totalSheets > 0 ? Math.round((filledSheets / totalSheets) * 100) : 0;
+    if (lkpsProgress > 99) lkpsProgress = 99;
+  }
+
   const documents = {
     lkps: {
       status: lkpsDoc?.status || 'DRAFT',
-      progress: lkpsDoc?.status === 'FINAL' ? 100 : (lkpsDoc ? 50 : 0),
+      progress: lkpsProgress,
     },
     led: {
       status: ledDoc?.status || 'DRAFT',
@@ -255,7 +269,6 @@ export const getDashboardByProdi = async (prodiId: string): Promise<DashboardDat
     },
   };
 
-  const isInfokom = latestLEDForm?.template === 'INFOKOM';
 
   const recentActivitiesUnsorted: Array<{ id: string; user: string; action: string; timestamp: Date }> = [];
   
@@ -514,6 +527,18 @@ export const getInstitusiDashboardSummary = async () => {
     
     const score = prodi.simulation?.totalScore || 0;
 
+    let lkpsProgress = 0;
+    if (lkpsDoc?.status === 'FINAL') {
+      lkpsProgress = 100;
+    } else if (lkpsDoc && lkpsDoc.content) {
+      const format = prodi.category === 'INFOKOM' ? 'INFOKOM' : 'TEKNIK';
+      const totalSheets = getSheetNamesByFormat(format).length;
+      const content = typeof lkpsDoc.content === 'string' ? JSON.parse(lkpsDoc.content) : lkpsDoc.content;
+      const filledSheets = Object.values(content).filter((sheetData: any) => Array.isArray(sheetData) && sheetData.length > 0).length;
+      lkpsProgress = totalSheets > 0 ? Math.round((filledSheets / totalSheets) * 100) : 0;
+      if (lkpsProgress > 99) lkpsProgress = 99;
+    }
+
     return {
       id: prodi.id,
       fullname: prodi.fullname,
@@ -525,7 +550,7 @@ export const getInstitusiDashboardSummary = async () => {
       } : null,
       documents: {
         lkps: {
-          progress: lkpsDoc?.status === 'FINAL' ? 100 : (lkpsDoc ? 50 : 0),
+          progress: lkpsProgress,
         },
         led: {
           progress: ledDoc?.status === 'FINAL' ? 100 : (ledDoc ? 50 : 0),

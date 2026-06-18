@@ -117,16 +117,22 @@ const calculateIndicatorQuantitative = async (prodiId: string) => {
     const sheetCompletion = Math.round((criteriaCompletion[criteriaCode] ?? 0) * 100);
     const evidenceCount = evidenceCountByCriteria[criteriaCode] ?? 0;
     
-    // Score components: 70% sheet completion, 30% evidence (max 5 evidences for full evidence score)
+    // Kuantitatif (LKPS): max 400
+    const quantitativeScore = Math.round((sheetCompletion / 100) * 400);
+    
+    // Auto Kualitatif (LED + Eviden) fallback: max 400 based on evidence
     const evidenceRatio = Math.min(evidenceCount / 5, 1);
-    const quantitativeScore = Math.round((sheetCompletion / 100) * 0.7 * 100 + evidenceRatio * 0.3 * 100);
+    const autoQualitativeScore = Math.round(evidenceRatio * 400);
+
+    // Total default (70% kuantitatif + 30% kualitatif)
+    const totalScore = Math.round(quantitativeScore * 0.7 + autoQualitativeScore * 0.3);
 
     return {
       ...indicator,
       quantitativeScore,
-      qualitativeScore: null,
+      qualitativeScore: null, // Still null to indicate it hasn't been manually assessed
       qualitativeNote: null,
-      totalScore: quantitativeScore,
+      totalScore,
       evidenceCount,
       sheetCompletion,
     };
@@ -157,9 +163,12 @@ const mergeManualQualitative = (
     const manual = manualMap.get(item.code);
     const qualitativeScore = manual?.qualitativeScore ?? null;
     const qualitativeNote = manual?.qualitativeNote ?? null;
-    const totalScore = qualitativeScore !== null
-      ? Math.round(item.quantitativeScore * 0.7 + qualitativeScore * 0.3)
-      : item.quantitativeScore;
+    
+    // Use manual qualitative score if exists, else use the auto-calculated one (which is embedded in the initial totalScore logic or we can recalculate it here)
+    const autoQualitativeScore = Math.round(Math.min(item.evidenceCount / 5, 1) * 400);
+    const finalQualitativeScore = qualitativeScore !== null ? qualitativeScore : autoQualitativeScore;
+    
+    const totalScore = Math.round(item.quantitativeScore * 0.7 + finalQualitativeScore * 0.3);
 
     return {
       ...item,
@@ -246,10 +255,10 @@ export const updateSimulationQualitative = async (
       ? update.qualitativeNote
       : existingData?.qualitativeNote ?? null;
     
-    // Use consistent 70/30 weight
-    const totalScore = qualitativeScore !== null
-      ? Math.round(indicator.quantitativeScore * 0.7 + qualitativeScore * 0.3)
-      : indicator.quantitativeScore;
+    const autoQualitativeScore = Math.round(Math.min(indicator.evidenceCount / 5, 1) * 400);
+    const finalQualitativeScore = qualitativeScore !== null ? qualitativeScore : autoQualitativeScore;
+    
+    const totalScore = Math.round(indicator.quantitativeScore * 0.7 + finalQualitativeScore * 0.3);
 
     return {
       ...indicator,

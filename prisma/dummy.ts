@@ -131,7 +131,7 @@ const prodiSeeds: ProdiSeed[] = [
     fullname: 'Magister Informatika',
     abbreviation: 'MI',
     degree: 'S2',
-    category: 'INFOKOM',
+    category: 'TEKNIK',
     accreditation: {
       grade: 'Unggul',
       startDate: new Date('2025-01-01'),
@@ -144,7 +144,7 @@ const prodiSeeds: ProdiSeed[] = [
     fullname: 'Magister Sistem dan Teknologi Informasi',
     abbreviation: 'MSTI',
     degree: 'S2',
-    category: 'INFOKOM',
+    category: 'TEKNIK',
     accreditation: {
       grade: 'Unggul',
       startDate: new Date('2025-01-01'),
@@ -157,7 +157,7 @@ const prodiSeeds: ProdiSeed[] = [
     fullname: 'Magister Kecerdasan Artifisial',
     abbreviation: 'MKA',
     degree: 'S2',
-    category: 'INFOKOM',
+    category: 'TEKNIK',
     accreditation: {
       grade: 'Unggul',
       startDate: new Date('2025-01-01'),
@@ -397,12 +397,14 @@ async function seedProdiAndAccreditation() {
         fullname: prodi.fullname,
         abbreviation: prodi.abbreviation,
         degree: prodi.degree,
+        category: prodi.category,
       },
       create: {
         id: `prodi-${prodi.key}`,
         fullname: prodi.fullname,
         abbreviation: prodi.abbreviation,
         degree: prodi.degree,
+        category: prodi.category,
       },
     });
 
@@ -733,7 +735,7 @@ async function seedLedAndLkpsDocuments(prodiIdByKey: Record<string, string>, use
         createdById: kaprodi.id,
       },
       create: {
-        id: `led-form-${prodi.key}`,
+        id: `led-form-${prodi.key}-${ledTemplate}`,
         prodiId,
         template: ledTemplate,
         periode: '2025',

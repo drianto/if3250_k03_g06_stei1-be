@@ -14,6 +14,7 @@ model Prodi {
   fullname              String                   @unique
   abbreviation          String?
   degree                String?
+  category              String                   @default("TEKNIK")
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
   accreditation         AccreditationInfo?
@@ -261,7 +262,7 @@ model DataInstitusi {
   updatedAt DateTime @updatedAt
 
   // Mencegah duplikasi data untuk sheet dan periode yang sama
-  @@unique([periode, sheetName])
+  @@unique([periode, sheetName, prodiId])
 }
 
 model Notification {
