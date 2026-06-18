@@ -16,7 +16,19 @@ import { errorResponse } from './utils/response';
 const app = express();
 
 // Middleware global
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+        imgSrc: ["'self'", "data:", "https://cdnjs.cloudflare.com"],
+      },
+    },
+  })
+);
+
 app.use(cors({ 
   origin: process.env.FRONTEND_URL || 'http://localhost:3000', 
   credentials: true,
@@ -30,7 +42,12 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Swagger UI
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const SWAGGER_OPTIONS: swaggerUi.SwaggerUiOptions = {
+  customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+  customJs: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js'
+};
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, SWAGGER_OPTIONS));
 app.get('/api/docs.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);

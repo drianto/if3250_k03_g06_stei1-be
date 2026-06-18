@@ -203,7 +203,7 @@ export const createMultipleSheetsData = async (
     criteriaByCodes[c.criteriaCode] = c;
   });
 
-  // dynamically imported config removed to fix runtime path resolution
+  const { getSheetConfig } = await import('@/config/lkps.config');
   const createdSheets: any[] = [];
 
   for (const [sheetName, sheetData] of Object.entries(parsedData)) {
